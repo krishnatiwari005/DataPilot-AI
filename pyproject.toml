@@ -20,8 +20,12 @@ dependencies = [
     "python-dotenv>=1.2.3",
     "scikit-learn>=1.9.1",
     "seaborn>=0.13.2",
+    "sqlalchemy[asyncio]>=2.1.1",
     "uvicorn>=0.54.0",
 ]
+
+[tool.uv]
+package = false
 
 [project.scripts]
 agno-datascience = "agno_datascience:main"

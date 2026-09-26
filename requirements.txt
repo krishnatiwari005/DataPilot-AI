@@ -12,3 +12,5 @@ scikit-learn
 seaborn
 pip
 duckdb
+sqlalchemy
+sqlalchemy[asyncio]
