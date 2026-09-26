@@ -21,6 +21,7 @@ db=SqliteDb(db_file="memory.db",session_table="session_table")
 
 model=Groq(id="openai/gpt-oss-120b",api_key=api_key)
 
+#================================load csv files agent========================================
 data_loader_agent=Agent(
     id="data-loader-agent",
     name="Data Loader Agent",
@@ -40,6 +41,7 @@ data_loader_agent=Agent(
     stream=True
 )
 
+#===============================load file manager agent========================================
 file_manager_agent=Agent(
     id="file-manager-agent",
     name="File Manager Agent",
@@ -51,6 +53,7 @@ file_manager_agent=Agent(
     tools=[FileTools(base_dir=base_dir)]
 )
 
+#================================load pandas tools agent========================================
 pandas_tools = PandasTools(
     enable_create_pandas_dataframe=True,
     enable_run_dataframe_operation=True
@@ -100,6 +103,16 @@ data_understanding_agent=Agent(
     markdown=True,
     stream=True
 )
+
+#===============================visualization agent========================================
+
+
+
+
+
+
+
+
 
 
 
