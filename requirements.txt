@@ -1,0 +1,14 @@
+agno
+openai
+python-dotenv
+fastapi
+groq
+fastapi[standard]
+uvicorn
+numpy
+pandas
+matplotlib
+scikit-learn
+seaborn
+pip
+duckdb
