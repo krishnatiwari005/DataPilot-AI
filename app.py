@@ -79,12 +79,15 @@ def run_df_operation(dataframe_name: str,operation: str,operation_parameters: st
         operation_parameters=params
     )
 
+def list_dataframes() -> str:
+    return str(list(pandas_tools.dataframes.keys()))
+
 data_understanding_agent=Agent(
     id="data-understanding-agent",
     name="Data Understanding Agent",
     model=model,
     db=db,
-    add_history_to_context=True,
+    add_history_to_context=False,
     num_history_runs=3,
     search_past_sessions=False,
     instructions=["you are an expert in handling pandas operation on a df",
@@ -99,7 +102,7 @@ data_understanding_agent=Agent(
                   "make sure to list down numerical , categorical columns in dataframe",
                   "you can check the shape of df using the .shape attribute",
                   "you have also access to tools which can search for data files"],
-    tools=[create_csv_dataframe,run_df_operation,FileTools(base_dir=base_dir)],
+    tools=[create_csv_dataframe,run_df_operation,list_dataframes,FileTools(base_dir=base_dir)],
     markdown=True,
     stream=True
 )
@@ -115,7 +118,6 @@ data_understanding_agent=Agent(
 
 
 
-
-
+print("Stored DataFrames:", pandas_tools.dataframes.keys())
 if __name__=="__main__":
     data_understanding_agent.cli_app()
