@@ -4,6 +4,7 @@ from agno.db.sqlite import SqliteDb
 from agno.tools.csv_toolkit import CsvTools
 from agno.tools.file import FileTools
 from agno.tools.pandas import PandasTools
+from agno.tools.visualization import VisualizationTools
 from dotenv import load_dotenv
 import os
 import json
@@ -69,15 +70,51 @@ def create_csv_dataframe(dataframe_name: str, filepath: str) -> str:
     )
 
 def run_df_operation(dataframe_name: str,operation: str,operation_parameters: str = "{}") -> str:
+    dataframe = pandas_tools.dataframes.get(dataframe_name)
+    if dataframe is None:
+        return f"DataFrame '{dataframe_name}' does not exist."
+    operation = operation.strip().lower()
+    if operation == "shape":
+        return str(dataframe.shape)
+    if operation == "columns":
+        return str(list(dataframe.columns))
+    if operation == "dtypes":
+        return str(dataframe.dtypes)
+    # Operations that require no parameters
+    if operation in ["info", "describe"]:
+        params = {}
+    else:
+        # Handle missing parameters
+        if operation_parameters is None:
+            operation_parameters = "{}"
+        # Convert dictionary directly
+        if isinstance(operation_parameters, dict):
+            params = operation_parameters
+        # Convert integer directly
+        elif isinstance(operation_parameters, int):
+            params = {"n": operation_parameters}
+        else:
+            try:
+                params = json.loads(str(operation_parameters))
+            except (json.JSONDecodeError, TypeError):
+                params = {}
+        # json.loads("5") gives integer 5
+        if not isinstance(params, dict):
+            if operation in ["head", "tail"]:
+                params = {"n": int(params)}
+            elif operation == "value_counts":
+                params = {"subset": [str(params)]}
+            else:
+                params = {}
     try:
-        params = json.loads(operation_parameters)
-    except json.JSONDecodeError:
-        params = {"subset": [operation_parameters]}
-    return pandas_tools.run_dataframe_operation(
-        dataframe_name=dataframe_name,
-        operation=operation,
-        operation_parameters=params
-    )
+        result = pandas_tools.run_dataframe_operation(
+            dataframe_name=dataframe_name,
+            operation=operation,
+            operation_parameters=params
+        )
+        return str(result)
+    except Exception as e:
+        return f"DataFrame operation '{operation}' failed: {str(e)}"
 
 def list_dataframes() -> str:
     return str(list(pandas_tools.dataframes.keys()))
@@ -98,16 +135,47 @@ data_understanding_agent=Agent(
                   "for head use '{\"n\": 5}'",
                   "for tail use '{\"n\": 5}'",
                   "for describe use '{}'",
-                  "operation you perform on df are head(),tail(), info(),describe() for numerical columns and you can also calculate the value_counts() for the categorical columns",
+                  "Supported operations are head, tail, info, describe, value_counts, shape, columns, and dtypes.",
+                  "Use shape, columns, and dtypes as DataFrame properties handled by the wrapper.",
+                  "Never pass null as operation_parameters.",
                   "make sure to list down numerical , categorical columns in dataframe",
                   "you can check the shape of df using the .shape attribute",
-                  "you have also access to tools which can search for data files"],
+                  "you have also access to tools which can search for data files",
+                  "operation_parameters must NEVER be null.",
+                  ],
     tools=[create_csv_dataframe,run_df_operation,list_dataframes,FileTools(base_dir=base_dir)],
     markdown=True,
     stream=True
 )
 
 #===============================visualization agent========================================
+visualization_agent = Agent(
+    id="viz-agent",
+    name="Visualization Agent",
+    db=db,
+    model=model,
+    add_history_to_context=False,
+    num_history_runs=2,
+    search_past_sessions=False,
+    instructions=["You are an expert in creating data visualizations using matplotlib.",
+            "Use the existing DataFrame whenever possible.",
+            "Before creating a new DataFrame, use list_dataframes to check whether the requested DataFrame already exists.",
+            "If the requested DataFrame does not exist, use create_csv_dataframe to create it.",
+            "Use run_df_operation to inspect the DataFrame and obtain the data needed for visualization.", 
+            "You can create bar plots, pie charts, line plots, histograms, and scatter plots.", 
+            "Use bar plots for categorical columns.",
+            "Use histograms for numerical columns.",
+            "Use scatter plots when studying relationships between two numerical columns.",
+            "Use line plots when the data represents an ordered or time-based relationship.",
+            "Always verify that the requested column exists before creating a chart.",
+            "Always use the correct chart type for the requested data.",
+            "Do not create another PandasTools instance.",
+            "Do not directly call create_pandas_dataframe.",
+            "Use create_csv_dataframe and run_df_operation."],
+    tools=[VisualizationTools("plots"),FileTools(base_dir=base_dir),create_csv_dataframe,run_df_operation,list_dataframes,],
+    markdown=True,
+    stream=True,
+)
 
 
 
@@ -120,4 +188,4 @@ data_understanding_agent=Agent(
 
 print("Stored DataFrames:", pandas_tools.dataframes.keys())
 if __name__=="__main__":
-    data_understanding_agent.cli_app()
+    visualization_agent.cli_app()
