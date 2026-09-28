@@ -8,6 +8,7 @@ from agno.tools.visualization import VisualizationTools
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.python import PythonTools
 from agno.tools.shell import ShellTools
+from agno.team import Team
 from dotenv import load_dotenv
 import os
 import json
@@ -177,6 +178,7 @@ visualization_agent = Agent(
     stream=True,
 )
 
+#========================================coding agent========================================
 coding_agent=Agent(
     id="coding-agent",
     name="Coding Agent",
@@ -200,6 +202,7 @@ coding_agent=Agent(
     markdown=True
 )
 
+#=========================================shell agent========================================
 shell_agent=Agent(
     id="shell-agent",
     name="Shell Agent",
@@ -216,11 +219,11 @@ shell_agent=Agent(
     tools=[ShellTools(base_dir=base_dir)]
 )
 
+#======================================DataScience-Team========================================
 
 
 
 
 
-print("Stored DataFrames:", pandas_tools.dataframes.keys())
 if __name__=="__main__":
-    coding_agent.cli_app()
+    pass
