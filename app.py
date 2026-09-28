@@ -1,6 +1,7 @@
 from agno.agent import Agent
 from agno.models.groq import Groq
 from agno.db.sqlite import SqliteDb
+from agno.os import AgentOS
 from agno.tools.csv_toolkit import CsvTools
 from agno.tools.file import FileTools
 from agno.tools.pandas import PandasTools
@@ -17,6 +18,7 @@ from pathlib import Path
 load_dotenv()
 
 api_key=os.getenv("GROQ_API_KEY","").strip()
+api_key_team=os.getenv("GROQ_API_KEY2","").strip()
 
 base_dir=Path(__file__).parent
 
@@ -25,11 +27,13 @@ data_path=Path(__file__).parent / "data" / "car_details.csv"
 db=SqliteDb(db_file="memory.db",session_table="session_table")
 
 model=Groq(id="openai/gpt-oss-120b",api_key=api_key)
+model_team=Groq(id="openai/gpt-oss-120b",api_key=api_key_team)
 
 #================================load csv files agent========================================
 data_loader_agent=Agent(
     id="data-loader-agent",
     name="Data Loader Agent",
+    role="Data loading and reading csv files",
     model=model,
     db=db,
     add_history_to_context=True,
@@ -50,6 +54,7 @@ data_loader_agent=Agent(
 file_manager_agent=Agent(
     id="file-manager-agent",
     name="File Manager Agent",
+    role="Manages filesystem",
     model=model,
     instructions=["you are an expert file management agent",
                   "your task is to list down files when asked to do it",
@@ -126,6 +131,7 @@ def list_dataframes() -> str:
 data_understanding_agent=Agent(
     id="data-understanding-agent",
     name="Data Understanding Agent",
+    role="Data Understanding and Exploration Assistant",
     model=model,
     db=db,
     add_history_to_context=False,
@@ -156,6 +162,7 @@ data_understanding_agent=Agent(
 visualization_agent = Agent(
     id="viz-agent",
     name="Visualization Agent",
+    role="Plotting and visualization Assistant",
     model=model,
     db=db,
     instructions=["You are an expert in creating data visualizations using matplotlib.",
@@ -182,6 +189,7 @@ visualization_agent = Agent(
 coding_agent=Agent(
     id="coding-agent",
     name="Coding Agent",
+    role="Python coding Assistant",
     db=db,
     add_history_to_context=True,
     num_history_runs=5,
@@ -206,6 +214,7 @@ coding_agent=Agent(
 shell_agent=Agent(
     id="shell-agent",
     name="Shell Agent",
+    role="Shell Commands Executor",
     add_history_to_context=True,
     model=model,
     db=db,
@@ -220,10 +229,45 @@ shell_agent=Agent(
 )
 
 #======================================DataScience-Team========================================
+data_science_team=Team(
+    members=[data_loader_agent,file_manager_agent,data_understanding_agent,visualization_agent,coding_agent,shell_agent],
+    id="data-science-team",
+    name="Data Science Team",
+    role="Team Leader/Project Manager",
+    model=model_team,
+    instructions=["you are an expert data scientist and team leader",
+                  "you manage team member which are good at coding using pandas, generate visualisation using matplotlib, executing shell command , loading data files and also managing the project file system",
+                  "delegate task to your member according to there roles and capabilty",
+                  "your task is to assist user through a machine learning pipeline,having steps such as data loading , data understanding , data cleaning , plotting of charts , feature engineering , model training and model evaluation",
+                  "whenever you generate the code first get it reviewed by the user before saving and executing it",
+                  "try to assist the user at all times and provide steps for each stages so that the user know what to do",
+                  "you have access to the session state where you can add session wise memory",
+                  "always try to add important stuffs such as data path , path to models and path to src files",
+                  "whenever the user ask you to remember any thing , just add it to the session state so that it can retreived later",
+                  "always try to assist the user with ideas and always think like the professional data scientist",
+                  "if you get any error try to have an approach to debug and solve it"],
+    db=db,
+    add_history_to_context=True,
+    num_history_runs=5,
+    read_chat_history=True,
+    session_state={},
+    add_session_state_to_context=True,
+    add_member_tools_to_context=True,
+    enable_agentic_state=True
+)
 
+#======================================Agent-OS===========================================
+agent_os=AgentOS(
+    id="agent-os",
+    name="Data Science Team",
+    description="This team of agent helps you throughout your data science and ML pipeline journey",
+    teams=[data_science_team]
+)
 
-
-
+#=======================================FastAPI=============================================
+app=agent_os.get_app()
 
 if __name__=="__main__":
-    pass
+    agent_os.serve(
+        app="app:app",
+    )
