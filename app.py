@@ -5,6 +5,9 @@ from agno.tools.csv_toolkit import CsvTools
 from agno.tools.file import FileTools
 from agno.tools.pandas import PandasTools
 from agno.tools.visualization import VisualizationTools
+from agno.tools.duckduckgo import DuckDuckGoTools
+from agno.tools.python import PythonTools
+from agno.tools.shell import ShellTools
 from dotenv import load_dotenv
 import os
 import json
@@ -152,34 +155,66 @@ data_understanding_agent=Agent(
 visualization_agent = Agent(
     id="viz-agent",
     name="Visualization Agent",
-    db=db,
     model=model,
-    add_history_to_context=False,
-    num_history_runs=2,
-    search_past_sessions=False,
+    db=db,
     instructions=["You are an expert in creating data visualizations using matplotlib.",
-            "Use the existing DataFrame whenever possible.",
-            "Before creating a new DataFrame, use list_dataframes to check whether the requested DataFrame already exists.",
-            "If the requested DataFrame does not exist, use create_csv_dataframe to create it.",
-            "Use run_df_operation to inspect the DataFrame and obtain the data needed for visualization.", 
-            "You can create bar plots, pie charts, line plots, histograms, and scatter plots.", 
-            "Use bar plots for categorical columns.",
-            "Use histograms for numerical columns.",
-            "Use scatter plots when studying relationships between two numerical columns.",
-            "Use line plots when the data represents an ordered or time-based relationship.",
-            "Always verify that the requested column exists before creating a chart.",
-            "Always use the correct chart type for the requested data.",
-            "Do not create another PandasTools instance.",
-            "Do not directly call create_pandas_dataframe.",
-            "Use create_csv_dataframe and run_df_operation."],
+                  "Use the existing DataFrame whenever possible.",
+                  "Before creating a new DataFrame, use list_dataframes to check whether the requested DataFrame already exists.",
+                  "If the requested DataFrame does not exist, use create_csv_dataframe to create it.",
+                  "Use run_df_operation to inspect the DataFrame and obtain the data needed for visualization.", 
+                  "You can create bar plots, pie charts, line plots, histograms, and scatter plots.", 
+                  "Use bar plots for categorical columns.",
+                  "Use histograms for numerical columns.",
+                  "Use scatter plots when studying relationships between two numerical columns.",
+                  "Use line plots when the data represents an ordered or time-based relationship.",
+                  "Always verify that the requested column exists before creating a chart.",
+                  "Always use the correct chart type for the requested data.",
+                  "Do not create another PandasTools instance.",
+                  "Do not directly call create_pandas_dataframe.",
+                  "Use create_csv_dataframe and run_df_operation."],
     tools=[VisualizationTools("plots"),FileTools(base_dir=base_dir),create_csv_dataframe,run_df_operation,list_dataframes,],
     markdown=True,
     stream=True,
 )
 
+coding_agent=Agent(
+    id="coding-agent",
+    name="Coding Agent",
+    db=db,
+    add_history_to_context=True,
+    num_history_runs=5,
+    read_chat_history=True,
+    model=model,
+    instructions=["YOu are an expert coding agent proficient in writing python code",
+                  "your main task is to write code specific to machine learning",
+                  "you may use pandas, numpy, sklearn, scipy,etc in your code",
+                  "you have access to tool that can list files in the directory and can also read them",
+                  "the python tool also lets you create python files and write them , you can also run them to get desired output",
+                  "you will be used to write python code for ml and data science task such as data cleaning , feature engineering , model training and model evaluation "
+                  "you also have the websearch capability in case you need to access the latest document from the web",
+                  "make sure to get the code reviewed by user and only write it into the file when user accepts it",
+                  "if you want to add the packages use the shell tool and use the command 'uv add <package-name>' ",
+                  "do not use shell tool to execute any other command than the one mentioned above"],
+    tools=[PythonTools(base_dir=base_dir),DuckDuckGoTools(),ShellTools(base_dir=base_dir)],
+    stream=True,
+    markdown=True
+)
 
-
-
+shell_agent=Agent(
+    id="shell-agent",
+    name="Shell Agent",
+    add_history_to_context=True,
+    model=model,
+    db=db,
+    instructions=["you have the capability to run shell commands",
+                  "use this capability with extreme cautions",
+                  "only use the shell tool capability if unable to execute the python file",
+                  "use the command 'uv run <python_file.py>' ",
+                  "do not use the shell for the command that can make changes in the project structure",
+                  "do not delete any file",
+                  "just use it to read the project structure ,file or to run file"],
+    tools=[ShellTools(base_dir=base_dir)]
+)
 
 
 
@@ -188,4 +223,4 @@ visualization_agent = Agent(
 
 print("Stored DataFrames:", pandas_tools.dataframes.keys())
 if __name__=="__main__":
-    visualization_agent.cli_app()
+    coding_agent.cli_app()

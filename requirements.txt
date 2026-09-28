@@ -14,3 +14,4 @@ pip
 duckdb
 sqlalchemy
 sqlalchemy[asyncio]
+ddgs
